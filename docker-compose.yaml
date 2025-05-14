@@ -40,7 +40,7 @@ version: '3'
 x-airflow-common:
   &airflow-common
   build: .
-  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.8.1}
+  image: ${AIRFLOW_IMAGE_NAME:-extending_image} #apache/airflow:2.8.1}
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -62,9 +62,9 @@ services:
   postgres:
     image: postgres:13
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
     ports:
@@ -93,14 +93,27 @@ services:
     restart: always
 
   airflow-init:
-    <<: *airflow-common
-    command: version
+    <<: *airflow-common            # Reference common service config
+    # command: version
+    command: >
+      bash -c "
+        airflow db upgrade &&
+        airflow users create \
+          --username EacAirflow \
+          --password Eac1470203221! \
+          --firstname Emanuel \
+          --lastname Calderon \
+          --role Admin \
+          --email emanuelcalderon071@gmail.com
+      "
+    env_file:         
+      - .env                        # Pass in the secrets
     environment:
-      <<: *airflow-common-env
+      <<: *airflow-common-env       # Common Airflow environment vars
       _AIRFLOW_DB_UPGRADE: 'true'
       _AIRFLOW_WWW_USER_CREATE: 'true'
-      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
-      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD}
 
 volumes:
   postgres-db-volume:
